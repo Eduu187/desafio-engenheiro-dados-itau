@@ -1,60 +1,51 @@
 # Teste Técnico - Engenheiro de Dados PySpark
 
-## Contexto
-Você foi contratado para analisar dados de pedidos e clientes de um e-commerce. Os dados estão armazenados em formato JSON e você precisa realizar análises para entender o comportamento de compra dos clientes.
+## Visão Geral
 
-## Dados Disponíveis
+Solução em PySpark para análise de dados de pedidos e clientes de um e-commerce, incluindo validação de qualidade, agregações, análises estatísticas e filtragens.
 
-### Clientes (`clients`)
-- **Volume**: ~10 mil de registros
-- **Localização**: `clients.json`
-- **Schema**:
-  - `id` (long): Identificador único do cliente
-  - `name` (string): Nome do cliente
+## Estrutura
 
-### Pedidos (`pedidos`)
-- **Volume**: ~1 milhão de registros
-- **Localização**: `pedidos.json`
-- **Schema**:
-  - `id` (long): Identificador único do pedido
-  - `client_id` (long): Identificador do cliente (FK para clients.id)
-  - `value` (decimal(5,2)): Valor do pedido
+```
+├── main.py              # Script principal
+├── data/
+│   ├── clientes.json        # ~10k registros
+│   └── pedidos.json         # ~1M registros
+└── requirements.txt         # pyspark==3.4.1
+```
 
-## Requisitos Técnicos
+## Execução
 
-### 1. Data Quality - Relatório de Falhas
-Identifique e reporte pedidos com problemas de qualidade:
-  - id e motivo
+**Instalar dependências:**
+```bash
+pip install -r requirements.txt
+```
 
-### 2. Agregação de Dados
-Crie uma análise que mostre para cada cliente:
-- Nome do cliente
-- Quantidade de pedidos realizados
-- Valor total de pedidos (formatado como decimal 11,2)
-- Ordene por valor total decrescente
+**Rodar o script:**
+```bash
+python main.py
+```
 
-### 3. Análise Estatística
-Calcule as seguintes métricas sobre o valor total por cliente:
-- Média aritmética
-- Mediana
-- Percentil 10 (10% inferiores)
-- Percentil 90 (10% superiores)
+## Requisitos Implementados
 
-### 4: Filtragem - Acima da Média
-Liste todos os clientes cujo valor total de pedidos está acima da média aritmética, ordenado por valor.
+1. **Data Quality** - Identifica pedidos inválidos (client_id nulo, value nulo, valor negativo, órfão)
+2. **Agregação** - Quantidade e valor total por cliente, ordenado por valor
+3. **Análise Estatística** - Média, mediana, percentil 10 e 90
+4. **Filtro Acima da Média** - Clientes com valor acima da média
+5. **Filtro P10-P90** - Clientes sem outliers (entre percentis 10 e 90)
 
-### 5: Filtragem - Média Truncada
-Liste todos os clientes cujo valor total está entre o percentil 10 e 90 (removendo outliers das extremidades), ordenado por valor.
+## Notas
 
-## Critérios de Avaliação
+- Usa `F.broadcast()` para otimização de join
+- Schemas tipados com StructType
+- Tratamento explícito de valores nulos
+- Precision decimal 11.2 mantida
 
-1. **Performance** (25%): Uso correto do spark para melhor balacemanto de dados
-2. **Correção** (25%): Resultados precisos e lógica correta
-3. **Coerência entre entrega e conhecimento** (50%): Bate papo sobre a solução
+## Decisões Técnicas
 
-## Entrega
-- Código PySpark funcional
-- Cada um dos 7 pontos de requisitos vão ser basicamente um dataframe
-- Não precisa persistir dataframes, use apenas o show()
-
-**Boa sorte!**
+- **Join otimizado**: uso de `broadcast` no dataframe de clientes (~10k registros) para evitar shuffle em join com pedidos (~1M).
+- **Schemas explícitos**: definição manual com `StructType` para evitar inferência incorreta e garantir tipos numéricos.
+- **Qualidade de dados**: separação explícita entre pedidos válidos e inválidos, permitindo análises consistentes.
+- **Estatísticas**: uso de `percentile_approx` por eficiência em grandes volumes de dados.
+- **Precisão numérica**: valores financeiros agregados e convertidos para `Decimal(11,2)` para evitar perda de precisão.
+- **Persistência**: `cache()` aplicado apenas no dataframe reutilizado, evitando consumo desnecessário de memória.
